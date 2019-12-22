@@ -264,7 +264,7 @@ public class cpu {
                     pixel = (short) (memory[I + yline]);
 
                     for(int xline = 0; xline < 8; xline++) {
-                        if ((x + xline > 64) || (y + yline > 32))
+                        if ((x + xline >= 64) || (y + yline >= 32))
                             continue;
 
                         if((pixel & (0x80 >> xline)) != 0) {

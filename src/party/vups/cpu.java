@@ -1,18 +1,18 @@
 package party.vups;
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.IntStream;
 
 public class cpu {
     private float hz = 500.0f;
+
+    private boolean debug = true;
 
     private String filepath = "";
 
@@ -20,13 +20,17 @@ public class cpu {
 
     private short opcode;
 
-    private boolean run = true;
+    private boolean run = false;
 
     private char[] memory = new char[4096];
 
     private char[] v = new char[16];
 
+    Logger logger;
+
     private short I, pc;
+
+    private int delayCounter = 0;
 
     private char[][] gfx = new char[64][32];
 
@@ -88,6 +92,8 @@ public class cpu {
 
     //Initializes the cpu
     void init() {
+        logger = Logger.getLogger(cpu.class.getName());
+        logger.setLevel(Level.INFO);
         pc = 0x200;
         opcode = 0;
         I = 0;
@@ -131,9 +137,8 @@ public class cpu {
 
     //Runs every cycle
     void cycle() throws InterruptedException {
-        Scanner scanner = new Scanner(System.in);
         opcode = (short)(memory[pc] << 8 | memory[pc +1]);
-        //System.out.println(String.format("Opcode: 0x%x", opcode));
+        System.out.println(String.format("Opcode: 0x%x", opcode));
 
         //Cyclespeed
         long milli = System.currentTimeMillis();
@@ -146,6 +151,8 @@ public class cpu {
 
         if (delay_timer > 0)
             delay_timer--;
+
+
 
         if (sound_timer > 0)
             if(sound_timer == 1) {
@@ -174,7 +181,6 @@ public class cpu {
                 stack[sp] = pc;
                 sp++;
                 pc = (short) (opcode & 0x0FFF);
-                drawflag = true;
                 break;
 
             case 0x3000:
@@ -310,9 +316,7 @@ public class cpu {
             //00EE
             //Returns from a subroutine
             case 0x00EE:
-                sp--;
-                pc = stack[sp];
-                pc += 2;
+                pc = (short) (stack[--sp] + 2);
                 break;
         }
     }
@@ -373,20 +377,20 @@ public class cpu {
             case 0x0006:
                 //8XY6
                 v[0xF] = (char) (v[opcode & 0x0F00 >> 8] & 0x1);
-                v[opcode & 0x0F00] = (char)(v[opcode & 0x0F00] >>= 1);
+                v[(opcode & 0x0F00) >> 8] = (char)(v[(opcode & 0x0F00) >> 8] >>= 1);
                 pc += 2;
                 break;
 
             case 0x0007:
                 //8XY7
-                v[opcode & 0x0F00] = (char)(v[0x00F0] - v[0x0F00]);
+                v[(opcode & 0x0F00) >> 8] = (char)(v[0x00F0] - v[0x0F00]);
                 pc += 2;
                 break;
 
             case 0x000E:
                 //8XYE
                 v[0xF] = (char) (v[opcode & 0x0F00 >> 8] << 7);
-                v[opcode & 0x0F00] = (char)(v[opcode & 0x0F00] <<= 1);
+                v[(opcode & 0x0F00) >> 8] = (char)(v[(opcode & 0x0F00) >> 8] <<= 1);
                 pc += 2;
                 break;
         }
@@ -426,14 +430,17 @@ public class cpu {
             case 0x000A:
                 //FX0A
                 //A key press is awaited, and then stored in VX.
-                if (!run) {
-                    IntStream.range(0, key.length).filter(i -> key[i] == 1).forEach(i -> {
-                        run = true;
+                for (int i = 0; i < this.key.length; i++) {
+                    if (this.key[i] == 1) {
                         v[(opcode & 0x0F00) >> 8] = (char) i;
                         pc += 2;
-                    });
-                } else
-                    run = false;
+
+                        for (int j = 0; j < key.length; j++) { //Clear the Array.
+                            key[j] = 0;
+                        }
+                        break;
+                    }
+                }
                 break;
 
             case 0x0005:

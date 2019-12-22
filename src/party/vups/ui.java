@@ -116,6 +116,7 @@ public class ui {
         while ( !glfwWindowShouldClose(window) ) {
             glfwPollEvents();
             mycpu.cycle();
+
             if (mycpu.getDrawflag()) {
                 glClear(GL_COLOR_BUFFER_BIT); // clear the framebuffer
                 drawCubes(mycpu.getGfx());
@@ -129,9 +130,11 @@ public class ui {
         int x = -sidelength;
         int y;
         glColor3f(1.0f,1.0f,1.0f);
+
         for (int i = 0; i < gfx.length; i++) {
             x += 2 * sidelength;
             y = -sidelength;
+
             for (int j = 0; j < gfx[0].length; j++) {
                 y += 2 * sidelength;
                 if (gfx[i][j] == 1) {
@@ -157,16 +160,16 @@ public class ui {
                 if (action == GLFW_PRESS) {
                     switch (key) {
                         case GLFW_KEY_1:
-                            mycpu.setKeys(true, 0);
-                            break;
-                        case GLFW_KEY_2:
                             mycpu.setKeys(true, 1);
                             break;
-                        case GLFW_KEY_3:
+                        case GLFW_KEY_2:
                             mycpu.setKeys(true, 2);
                             break;
-                        case GLFW_KEY_4:
+                        case GLFW_KEY_3:
                             mycpu.setKeys(true, 3);
+                            break;
+                        case GLFW_KEY_4:
+                            mycpu.setKeys(true, 12);
                             break;
                         case GLFW_KEY_Q:
                             mycpu.setKeys(true, 4);
@@ -178,82 +181,31 @@ public class ui {
                             mycpu.setKeys(true, 6);
                             break;
                         case GLFW_KEY_R:
-                            mycpu.setKeys(true, 7);
-                            break;
-                        case GLFW_KEY_A:
-                            mycpu.setKeys(true, 8);
-                            break;
-                        case GLFW_KEY_S:
-                            mycpu.setKeys(true, 9);
-                            break;
-                        case GLFW_KEY_D:
-                            mycpu.setKeys(true, 10);
-                            break;
-                        case GLFW_KEY_F:
-                            mycpu.setKeys(true, 11);
-                            break;
-                        case GLFW_KEY_Z:
-                            mycpu.setKeys(true, 12);
-                            break;
-                        case GLFW_KEY_X:
                             mycpu.setKeys(true, 13);
                             break;
-                        case GLFW_KEY_C:
+                        case GLFW_KEY_A:
+                            mycpu.setKeys(true, 7);
+                            break;
+                        case GLFW_KEY_S:
+                            mycpu.setKeys(true, 8);
+                            break;
+                        case GLFW_KEY_D:
+                            mycpu.setKeys(true, 9);
+                            break;
+                        case GLFW_KEY_F:
                             mycpu.setKeys(true, 14);
+                            break;
+                        case GLFW_KEY_Z:
+                            mycpu.setKeys(true, 10);
+                            break;
+                        case GLFW_KEY_X:
+                            mycpu.setKeys(true, 0);
+                            break;
+                        case GLFW_KEY_C:
+                            mycpu.setKeys(true, 11);
                             break;
                         case GLFW_KEY_V:
                             mycpu.setKeys(true, 15);
-                            break;
-                    }
-                } else if (action == GLFW_RELEASE) {
-                    switch (key) {
-                        case GLFW_KEY_1:
-                            mycpu.setKeys(false, 0);
-                            break;
-                        case GLFW_KEY_2:
-                            mycpu.setKeys(false, 1);
-                            break;
-                        case GLFW_KEY_3:
-                            mycpu.setKeys(false, 2);
-                            break;
-                        case GLFW_KEY_4:
-                            mycpu.setKeys(false, 3);
-                            break;
-                        case GLFW_KEY_Q:
-                            mycpu.setKeys(false, 4);
-                            break;
-                        case GLFW_KEY_W:
-                            mycpu.setKeys(false, 5);
-                            break;
-                        case GLFW_KEY_E:
-                            mycpu.setKeys(false, 6);
-                            break;
-                        case GLFW_KEY_R:
-                            mycpu.setKeys(false, 7);
-                            break;
-                        case GLFW_KEY_A:
-                            mycpu.setKeys(false, 8);
-                            break;
-                        case GLFW_KEY_S:
-                            mycpu.setKeys(false, 9);
-                            break;
-                        case GLFW_KEY_D:
-                            mycpu.setKeys(false, 10);
-                            break;
-                        case GLFW_KEY_F:
-                            mycpu.setKeys(false, 11);
-                            break;
-                        case GLFW_KEY_Z:
-                            mycpu.setKeys(false, 12);
-                            break;
-                        case GLFW_KEY_X:
-                            mycpu.setKeys(false, 13);
-                            break;
-                        case GLFW_KEY_C:
-                            mycpu.setKeys(false, 14);
-                            break;
-                        case GLFW_KEY_V:
-                            mycpu.setKeys(false, 15);
                             break;
                     }
                 }

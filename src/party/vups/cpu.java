@@ -1,5 +1,6 @@
 package party.vups;
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.File;
@@ -7,9 +8,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.Scanner;
+import java.util.stream.IntStream;
 
 public class cpu {
-    private int hz = 100;
+    private float hz = 500.0f;
+
+    private String filepath = "";
 
     private Random numbergen = new Random();
 
@@ -17,17 +22,13 @@ public class cpu {
 
     private boolean run = true;
 
-    private boolean copy = true;
-
-    private char[] keycopy;
-
     private char[] memory = new char[4096];
 
     private char[] v = new char[16];
 
     private short I, pc;
 
-    char[] gfx = new char[64*32];
+    private char[][] gfx = new char[64][32];
 
     private char delay_timer;
 
@@ -35,7 +36,7 @@ public class cpu {
 
     private short[] stack = new short[16];
 
-    boolean drawflag;
+    private boolean drawflag;
 
     private short sp;
 
@@ -57,42 +58,25 @@ public class cpu {
             0xF0, 0x80, 0x80, 0x80, 0xF0, // C
             0xE0, 0x90, 0x90, 0x90, 0xE0, // D
             0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-            0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+            0xF0, 0x80, 0xF0, 0x80, 0x80, // F
     };
 
-    public cpu() { }
-
-    //Draws the pixels in system out
-    protected void draw() {
-        clearScreen();
-        StringBuilder display = new StringBuilder();
-
-        if (gfx[1] == 1)
-            display.append(" * ");
-        else
-            display.append("   ");
-        for (int i = 1; i < gfx.length; i++) {
-            if (i % 64 == 0) {
-                if (gfx[i] == 1)
-                    display.append("\n * ");
-                else
-                    display.append("\n   ");
-            } else {
-                if (gfx[i] == 1)
-                    display.append(" * ");
-                else
-                    display.append("   ");
-            }
-        }
-
-        drawflag = false;
-        System.out.println(display.toString());
+    public cpu(String filepath) {
+        this.filepath = filepath;
     }
 
-    private static void clearScreen() {
-        for (int i =  0; i < 40; i++)
-            System.out.println("\n");
+    char[][] getGfx() {
+        return this.gfx;
     }
+
+    boolean getDrawflag() {
+        return this.drawflag;
+    }
+
+    void setDrawflag(boolean drawflag) {
+        this.drawflag = drawflag;
+    }
+
 
     void setKeys(boolean a, int i) {
         if (a)
@@ -132,7 +116,7 @@ public class cpu {
         delay_timer = 0;
         sound_timer = 0;
 
-        File file = new File("C:\\Users\\andreas\\IdeaProjects\\CHIP-8\\games\\Chip-8 Demos\\Maze [David Winter, 199x].ch8");
+        File file = new File(filepath);
         try (FileInputStream fileInputStream = new FileInputStream(file)) {
             int index = 0;
             int stream;
@@ -147,35 +131,31 @@ public class cpu {
 
     //Runs every cycle
     void cycle() throws InterruptedException {
+        Scanner scanner = new Scanner(System.in);
         opcode = (short)(memory[pc] << 8 | memory[pc +1]);
         //System.out.println(String.format("Opcode: 0x%x", opcode));
 
-        //field
-        //Tests
+        //Cyclespeed
         long milli = System.currentTimeMillis();
-        double interval = (1000 / 60);
+        double interval = (1000 / hz);
         while (((System.currentTimeMillis() - milli)) < interval){
-            Thread.sleep(1);
+            Thread.sleep(10);
         }
-        decode(opcode);
+
+        decode(opcode); //Performs tre opcode
 
         if (delay_timer > 0)
             delay_timer--;
 
         if (sound_timer > 0)
-            if(sound_timer == 1)
-                System.out.println("BEEP!\n");
+            if(sound_timer == 1) {
+                System.out.println("beep...");
+            }
             sound_timer--;
     }
 
     //Decodes and executes opcode
     private void decode(short opcode) throws InterruptedException {
-        if (!run) {
-            if (copy) {
-                keycopy = key.clone();
-                copy = false;
-            }
-        }
         switch (opcode & 0xF000) {
             case 0x0000:
                 opcode00(opcode);
@@ -194,6 +174,7 @@ public class cpu {
                 stack[sp] = pc;
                 sp++;
                 pc = (short) (opcode & 0x0FFF);
+                drawflag = true;
                 break;
 
             case 0x3000:
@@ -228,7 +209,7 @@ public class cpu {
                 //Sets VX = NN
                 v[(opcode & 0x0F00) >> 8] = (char) (opcode & 0x00FF);
                 pc += 2;
-                break;
+                return;
 
             case 0x7000:
                 //7XNN
@@ -261,41 +242,42 @@ public class cpu {
                 //BNNN
                 //Jumps to the address NNN plus V0. PC = NNN + PC
                 pc = (short) (v[0x0] + (opcode & 0x0FFF));
-                pc += 2;
                 break;
 
             case 0xC000:
                 //CXNN
                 //Sets VX to the result of a bitwise and operation on a random number and NN
-                v[(opcode & 0x0F00) >> 8] = (char) (numbergen.nextInt(255) & (opcode & 0x00FF));
+                v[(opcode & 0x0F00) >> 8] = (char) (numbergen.nextInt(0xFF + 1) & (opcode & 0x00FF));
                 pc += 2;
                 break;
 
             case 0xD000:
                 //DXYN
                 //Draws sprite
-                short x = (short) v[(opcode & 0x0F00) >> 8];
-                short y = (short) v[(opcode & 0x00F0) >> 4];
+                short x = (short) (v[(opcode & 0x0F00) >> 8] % 64);
+                short y = (short) (v[(opcode & 0x00F0) >> 4] % 32);
                 short height = (short) (opcode & 0x000F);
                 short pixel;
 
                 v[0xF] = 0;
-                for (int yline = 0; yline < height; yline++)
-                {
+                for (int yline = 0; yline < height; yline++) {
                     pixel = (short) (memory[I + yline]);
-                    for(int xline = 0; xline < 8; xline++)
-                    {
-                        if((pixel & (0x80 >> xline)) != 0)
-                        {
-                            if(gfx[(x + xline + ((y + yline) * 64))] == 1)
+
+                    for(int xline = 0; xline < 8; xline++) {
+                        if ((x + xline > 64) || (y + yline > 32))
+                            continue;
+
+                        if((pixel & (0x80 >> xline)) != 0) {
+                            if(gfx[x + xline][y + yline] == 1)
                                 v[0xF] = 1;
-                            gfx[x + xline + ((y + yline) * 64)] ^= 1;
+                            gfx[x + xline][y + yline] ^= 1;
                         }
                     }
                 }
 
                 drawflag = true;
                 pc += 2;
+
 
                 break;
 
@@ -315,7 +297,12 @@ public class cpu {
             //00E0
             //Clear screen
             case 0x00E0: {
-                gfx = new char[64 * 32];
+                for (int i = 0; i < gfx.length; i++) {
+                    for (int j = 0; j < gfx[0].length; j++) {
+                        gfx[i][j] = 0;
+                    }
+                }
+                drawflag = true;
                 pc += 2;
                 break;
             }
@@ -323,15 +310,15 @@ public class cpu {
             //00EE
             //Returns from a subroutine
             case 0x00EE:
-                sp -= 1;
-                pc = (short)(stack[sp] + 2);
-                stack[sp] = 0;
+                sp--;
+                pc = stack[sp];
+                pc += 2;
                 break;
         }
     }
 
     private void opcode90(short opcode) {
-        switch (opcode & 0x000F){
+        switch (opcode & 0x000F) {
             case 0x0000:
                 //8XY0
                 //VX = VY
@@ -342,21 +329,21 @@ public class cpu {
             case 0x0001:
                 //8XY1
                 //Sets VX = VX | VY
-                v[(opcode & 0x0F00) >> 8 ] = (char) (v[(opcode & 0x0F00) >> 8] | v[(opcode & 0x00F0) >> 4]);
+                v[(opcode & 0x0F00) >> 8 ] |= v[(opcode & 0x00F0) >> 4];
                 pc += 2;
                 break;
 
             case 0x0002:
                 //8XY2
                 //Sets VX = VX & VY
-                v[(opcode & 0x0F00) >> 8] = (char) (v[(opcode & 0x0F00) >> 8] & v[(opcode & 0x00F0) >> 4]);
+                v[(opcode & 0x0F00) >> 8] &= v[(opcode & 0x00F0) >> 4];
                 pc += 2;
                 break;
 
             case 0x0003:
                 //8XY3
                 //Sets VX = VX ^ VY
-                v[(opcode & 0x0F00) >> 8] = (char) (v[(opcode & 0x0F00) >> 8] ^ v[(opcode & 0x00F0) >> 4]);
+                v[(opcode & 0x0F00) >> 8] ^= v[(opcode & 0x00F0) >> 4];
                 pc += 2;
                 break;
 
@@ -384,13 +371,23 @@ public class cpu {
 
             //TODO
             case 0x0006:
-
+                //8XY6
+                v[0xF] = (char) (v[opcode & 0x0F00 >> 8] & 0x1);
+                v[opcode & 0x0F00] = (char)(v[opcode & 0x0F00] >>= 1);
+                pc += 2;
                 break;
 
             case 0x0007:
+                //8XY7
+                v[opcode & 0x0F00] = (char)(v[0x00F0] - v[0x0F00]);
+                pc += 2;
                 break;
 
             case 0x000E:
+                //8XYE
+                v[0xF] = (char) (v[opcode & 0x0F00 >> 8] << 7);
+                v[opcode & 0x0F00] = (char)(v[opcode & 0x0F00] <<= 1);
+                pc += 2;
                 break;
         }
     }
@@ -430,16 +427,11 @@ public class cpu {
                 //FX0A
                 //A key press is awaited, and then stored in VX.
                 if (!run) {
-                    if (!Arrays.equals(keycopy, key)) {
-                        for (int i = 0; i < key.length; i++) {
-                            if (key[i] != keycopy[i]) {
-                                v[(opcode & 0x0F00) >> 8] = (char) i;
-                                copy = true;
-                                run = true;
-                                pc += 2;
-                            }
-                        }
-                    }
+                    IntStream.range(0, key.length).filter(i -> key[i] == 1).forEach(i -> {
+                        run = true;
+                        v[(opcode & 0x0F00) >> 8] = (char) i;
+                        pc += 2;
+                    });
                 } else
                     run = false;
                 break;
@@ -486,15 +478,16 @@ public class cpu {
             case 0x0009:
                 //FX29
                 //Sets I to the location of the sprite for the character in VX.
-                I = (short)(fontset[v[(opcode & 0x0F00) >> 8]]);
+                I = (short)(v[(opcode & 0x0F00) >> 8] * 0x5);
                 pc += 2;
+                drawflag = true;
                 break;
 
             case 0x0003:
                 //FX33
                 memory[I] = (char) (v[(opcode & 0x0F00) >> 8] / 100);
-                memory[I + 1] = (char) (((v[(opcode & 0x0F00) >> 8] / 10)) % 10);
-                memory[I + 2] = (char) (((v[(opcode & 0x0F00) >> 8] / 100)) % 10);
+                memory[I + 1] = (char) ((v[(opcode & 0x0F00) >> 8] / 10) % 10);
+                memory[I + 2] = (char) (v[(opcode & 0x0F00) >> 8] % 10);
                 pc += 2;
                 break;
 
@@ -502,6 +495,4 @@ public class cpu {
                 System.out.println(String.format("No opcode found for 0x%x", opcode));
         }
     }
-
-
 }

@@ -114,44 +114,40 @@ public class ui {
         // Run the rendering loop until the user has attempted to close
         // the window or has pressed the ESCAPE key.
         while ( !glfwWindowShouldClose(window) ) {
-
-            glfwSwapBuffers(window); // swap the color buffers
-
             glfwPollEvents();
             mycpu.cycle();
-            if (mycpu.drawflag) {
+            if (mycpu.getDrawflag()) {
                 glClear(GL_COLOR_BUFFER_BIT); // clear the framebuffer
-                //mycpu.draw();
-                drawCubes(mycpu.gfx);
+                drawCubes(mycpu.getGfx());
+                mycpu.setDrawflag(false);
+                glfwSwapBuffers(window); // swap the buffers
             }
-            glEnd();
         }
     }
 
-    private void drawCubes(char[] gfx) {
-        int x = sidelength;
-        int y = sidelength;
-        draw(gfx[0], x, y);
-        for (int i = 1; i < gfx.length + 1; i++) {
-            if (i % 64 == 0) {
-                y += 2 * sidelength;
-                x = sidelength;
-            } else
-                x += 2*sidelength;
-            draw(gfx[i - 1], x, y);
-        }
-    }
-
-    private void draw(char gfx, int x, int y) {
+    private void drawCubes(char[][] gfx) {
+        int x = -sidelength;
+        int y;
         glColor3f(1.0f,1.0f,1.0f);
-        if (gfx  == 1) {
-            glBegin(GL_QUADS);
-            glVertex2f(x + sidelength,y + sidelength);
-            glVertex2f(x + sidelength,y - sidelength);
-            glVertex2f(x - sidelength,y - sidelength);
-            glVertex2f(x - sidelength,y + sidelength);
-            glEnd();
+        for (int i = 0; i < gfx.length; i++) {
+            x += 2 * sidelength;
+            y = -sidelength;
+            for (int j = 0; j < gfx[0].length; j++) {
+                y += 2 * sidelength;
+                if (gfx[i][j] == 1) {
+                    draw(x, y);
+                }
+            }
         }
+    }
+
+    private void draw(int x, int y) {
+        glBegin(GL_QUADS);
+        glVertex2f(x + sidelength,y + sidelength);
+        glVertex2f(x + sidelength,y - sidelength);
+        glVertex2f(x - sidelength,y - sidelength);
+        glVertex2f(x - sidelength,y + sidelength);
+        glEnd();
     }
 
     private GLFWKeyCallbackI keyCallback() {
